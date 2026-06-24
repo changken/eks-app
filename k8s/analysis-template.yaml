@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  namespace: custom-app
+spec:
+  metrics:
+    - name: success-rate
+      interval: 30s
+      # success rate >= 95% 才繼續，否則 rollback
+      successCondition: result[0] >= 0.95
+      failureLimit: 3   # 連續 3 次失敗才判定 Degraded
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring:9090
+          query: |
+            sum(rate(custom_app_http_requests_total{status="200"}[2m]))
+            /
+            sum(rate(custom_app_http_requests_total[2m]))

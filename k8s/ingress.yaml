@@ -7,9 +7,15 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    # 與 podinfo 共用同一個 ALB（省費用）
     alb.ingress.kubernetes.io/group.name: eks-demo
     alb.ingress.kubernetes.io/group.order: "20"
+    # Argo Rollouts 管理此 annotation，控制 stable/canary 流量比例
+    # 初始值：100% stable，0% canary
+    alb.ingress.kubernetes.io/actions.custom-app: |
+      {"type":"forward","forwardConfig":{"targetGroups":[
+        {"serviceName":"custom-app","servicePort":"80","weight":100},
+        {"serviceName":"custom-app-canary","servicePort":"80","weight":0}
+      ]}}
 spec:
   rules:
     - http:
@@ -18,6 +24,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: custom-app
+                name: custom-app      # 對應 actions.custom-app annotation
                 port:
-                  number: 80
+                  name: use-annotation

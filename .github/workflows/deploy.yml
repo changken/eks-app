@@ -54,8 +54,8 @@ jobs:
         env:
           IMAGE: ${{ steps.build.outputs.image }}
         run: |
-          sed -i "s|image: .*infra-lab-dev-app:.*|image: $IMAGE|" k8s/deployment.yaml
-          cat k8s/deployment.yaml | grep "image:"
+          sed -i "s|image: .*infra-lab-dev-app:.*|image: $IMAGE|" k8s/rollout.yaml
+          cat k8s/rollout.yaml | grep "image:"
 
       # ── Commit & Push → ArgoCD 自動 sync ──────────────────
       - name: Commit updated manifest
@@ -64,7 +64,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add k8s/deployment.yaml
+          git add k8s/rollout.yaml
           git diff --staged --quiet || \
             git commit -m "ci: update image tag to ${IMAGE_TAG::7}"
           git push
