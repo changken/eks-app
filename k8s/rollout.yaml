@@ -17,7 +17,7 @@ spec:
       containers:
         - name: app
           # CI 自動更新此行：deploy.yml 會把 git SHA 寫入
-          image: 661515655645.dkr.ecr.us-east-1.amazonaws.com/infra-lab-dev-app:4e220048ea7d6258a2e7078541f0bc91c6d93327
+          image: 661515655645.dkr.ecr.us-east-1.amazonaws.com/infra-lab-dev-app:4d0015b2ab2d6739c48ff5dbcf1e3cb40508b52d
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
