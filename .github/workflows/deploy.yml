@@ -1,0 +1,70 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # OIDC token 給 AWS STS
+  contents: write   # 寫回 deployment.yaml
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 661515655645.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: infra-lab-dev-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── OIDC → AWS（不需要 long-lived Access Key）──────────
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ── ECR Login ──────────────────────────────────────────
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── Build & Push ───────────────────────────────────────
+      - name: Build and push Docker image
+        id: build
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # latest tag 方便手動測試
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+                     $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # ── 更新 manifest image tag ────────────────────────────
+      # sed 替換 deployment.yaml 的 image 行，讓 ArgoCD 偵測到變更
+      - name: Update deployment image tag
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+        run: |
+          sed -i "s|image: .*infra-lab-dev-app:.*|image: $IMAGE|" k8s/deployment.yaml
+          cat k8s/deployment.yaml | grep "image:"
+
+      # ── Commit & Push → ArgoCD 自動 sync ──────────────────
+      - name: Commit updated manifest
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/deployment.yaml
+          git diff --staged --quiet || \
+            git commit -m "ci: update image tag to ${IMAGE_TAG::7}"
+          git push

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-app
+  namespace: custom-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: custom-app
+  template:
+    metadata:
+      labels:
+        app: custom-app
+    spec:
+      serviceAccountName: custom-app
+      containers:
+        - name: app
+          # CI 自動更新此行：deploy.yml 會把 git SHA 寫入
+          image: 661515655645.dkr.ecr.us-east-1.amazonaws.com/infra-lab-dev-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KNOWLEDGE_BUCKET
+              value: "infra-lab-dev-rag-661515655645"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CHAT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: custom-app-secrets
+                  key: chat-api-key
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
