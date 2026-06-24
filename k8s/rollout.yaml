@@ -67,11 +67,6 @@ spec:
         alb:
           ingress: custom-app
           servicePort: 80
-      # Prometheus success rate 分析（error rate > 5% 自動 rollback）
-      analysis:
-        templates:
-          - templateName: success-rate
-        startingStep: 1
       steps:
         - setWeight: 20       # 20% 流量到 canary
         - analysis:
@@ -79,5 +74,8 @@ spec:
               - templateName: success-rate
         - pause: {duration: 2m}
         - setWeight: 50       # 50% 流量到 canary
+        - analysis:
+            templates:
+              - templateName: success-rate
         - pause: {duration: 2m}
         # 100% 自動完成（promote）

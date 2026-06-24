@@ -6,6 +6,7 @@ metadata:
 spec:
   metrics:
     - name: success-rate
+      count: 5          # 在 pause 期間執行 5 次（5 × 30s = 2.5min）
       interval: 30s
       # success rate >= 95% 才繼續，否則 rollback
       successCondition: result[0] >= 0.95
