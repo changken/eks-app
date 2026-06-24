@@ -15,6 +15,6 @@ spec:
         prometheus:
           address: http://kube-prometheus-stack-prometheus.monitoring:9090
           query: |
-            sum(rate(custom_app_http_requests_total{status="200"}[2m]))
+            (sum(rate(custom_app_http_requests_total{status="200"}[2m])) or vector(1))
             /
-            sum(rate(custom_app_http_requests_total[2m]))
+            (sum(rate(custom_app_http_requests_total[2m])) or vector(1))
