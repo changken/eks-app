@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	version         = getEnv("VERSION", "v7")
+	version         = getEnv("VERSION", "v8")
 	startTime       = time.Now()
 	region          = getEnv("AWS_REGION", "us-east-1")
 	knowledgeBucket = getEnv("KNOWLEDGE_BUCKET", "")
